@@ -1,0 +1,15 @@
+name: chama-md
+services:
+  - name: chama-md-service
+    type: web
+    ports:
+      - 5000
+    routes:
+      - path: "/"
+    build:
+      type: docker
+      dockerfile: ./Dockerfile
+    regions:
+      - fra
+      - sin
+      
