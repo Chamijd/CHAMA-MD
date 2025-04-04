@@ -3,6 +3,7 @@ const { cmd } = require('../command');
 const { ytsearch } = require('@dark-yasiya/yt-dl.js');
 
 // MP4 video download
+// MP4 video download with options
 cmd({ 
     pattern: "mp4", 
     alias: ["video"], 
@@ -28,8 +29,19 @@ cmd({
             return reply("Failed to fetch the video. Please try again later.");
         }
 
-        let ytmsg = `📹 *Video Details*\n🎬 *Title:* ${yts.title}\n⏳ *Duration:* ${yts.timestamp}\n👀 *Views:* ${yts.views}\n👤 *Author:* ${yts.author.name}\n🔗 *Link:* ${yts.url}`;
-        
+        let ytmsg = `📹 *Video Details*
+🎬 *Title:* ${yts.title}
+⏳ *Duration:* ${yts.timestamp}
+👀 *Views:* ${yts.views}
+👤 *Author:* ${yts.author.name}
+🔗 *Link:* ${yts.url}
+
+*Choose download format:*
+1. 📄 Document (no preview)
+2. ▶️ Normal Video (with preview)
+
+_Reply to this message with 1 or 2 to download._`;
+
         let contextInfo = {
             mentionedJid: [m.sender],
             forwardingScore: 999,
@@ -41,14 +53,49 @@ cmd({
             }
         };
 
-        // Send the thumbnail with caption only
-        await conn.sendMessage(from, { image: { url: yts.thumbnail }, caption: ytmsg, contextInfo }, { quoted: mek });
+        // Send thumbnail with options
+        const videoMsg = await conn.sendMessage(from, { image: { url: yts.thumbnail }, caption: ytmsg, contextInfo }, { quoted: mek });
 
-        // Send video as document
-        await conn.sendMessage(from, { document: { url: data.result.download_url }, mimetype: "video/mp4", fileName: `${yts.title}.mp4`, contextInfo }, { quoted: mek });
+        conn.ev.on("messages.upsert", async (msgUpdate) => {
+            const replyMsg = msgUpdate.messages[0];
+            if (!replyMsg.message || !replyMsg.message.extendedTextMessage) return;
 
-        // Send video as normal video
-        await conn.sendMessage(from, { video: { url: data.result.download_url }, mimetype: "video/mp4", contextInfo }, { quoted: mek });
+            const selected = replyMsg.message.extendedTextMessage.text.trim();
+
+            if (
+                replyMsg.message.extendedTextMessage.contextInfo &&
+                replyMsg.message.extendedTextMessage.contextInfo.stanzaId === videoMsg.key.id
+            ) {
+                await conn.sendMessage(from, { react: { text: "⬇️", key: replyMsg.key } });
+
+                switch (selected) {
+                    case "1":
+                        await conn.sendMessage(from, {
+                            document: { url: data.result.download_url },
+                            mimetype: "video/mp4",
+                            fileName: `${yts.title}.mp4`,
+                            contextInfo
+                        }, { quoted: replyMsg });
+                        break;
+
+                    case "2":
+                        await conn.sendMessage(from, {
+                            video: { url: data.result.download_url },
+                            mimetype: "video/mp4",
+                            contextInfo
+                        }, { quoted: replyMsg });
+                        break;
+
+                    default:
+                        await conn.sendMessage(
+                            from,
+                            { text: "*වැරදි වරදක්. කරුණාකර 1 හෝ 2 යොදන්න.*" },
+                            { quoted: replyMsg }
+                        );
+                        break;
+                }
+            }
+        });
 
     } catch (e) {
         console.log(e);
@@ -82,7 +129,19 @@ cmd({
             return reply("Failed to fetch the audio. Please try again later.");
         }
         
-        let ytmsg = `🎵 *Song Details*\n🎶 *Title:* ${yts.title}\n⏳ *Duration:* ${yts.timestamp}\n👀 *Views:* ${yts.views}\n👤 *Author:* ${yts.author.name}\n🔗 *Link:* ${yts.url}`;
+        let ytmsg = `🎵 *Song Details*
+🎶 *Title:* ${yts.title}
+⏳ *Duration:* ${yts.timestamp}
+👀 *Views:* ${yts.views}
+👤 *Author:* ${yts.author.name}
+🔗 *Link:* ${yts.url}
+
+*Choose download format:*
+1. 📄 MP3 as Document
+2. 🎧 MP3 as Audio (Play)
+3. 🎙️ MP3 as Voice Note (PTT)
+
+_Reply with 1, 2 or 3 to this message to download the format you prefer._`;
         
         let contextInfo = {
             mentionedJid: [m.sender],
