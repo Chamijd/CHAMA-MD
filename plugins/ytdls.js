@@ -96,17 +96,53 @@ cmd({
         };
         
         // Send thumbnail with caption only
-        await conn.sendMessage(from, { image: { url: yts.thumbnail }, caption: ytmsg, contextInfo }, { quoted: mek });
+  const songmsg = await conn.sendMessage(from, { image: { url: yts.thumbnail }, caption: ytmsg, contextInfo }, { quoted: mek });
 
-        // Send as document
-        await conn.sendMessage(from, { document: { url: data.result.downloadUrl }, mimetype: "audio/mpeg", fileName: `${yts.title}.mp3`, contextInfo }, { quoted: mek });
+  
+     
+                     conn.ev.on("messages.upsert", async (msgUpdate) => {
         
-        // Send as normal audio
-        await conn.sendMessage(from, { audio: { url: data.result.downloadUrl }, mimetype: "audio/mpeg", contextInfo }, { quoted: mek });
-        
-        // Send as voice note
-        await conn.sendMessage(from, { audio: { url: data.result.downloadUrl }, mimetype: "audio/mpeg", ptt: true, contextInfo }, { quoted: mek });
 
+                const mp3msg = msgUpdate.messages[0];
+                if (!mp3msg.message || !mp3msg.message.extendedTextMessage) return;
+
+                const selectedOption = mp3msg.message.extendedTextMessage.text.trim();
+
+                if (
+                    mp3msg.message.extendedTextMessage.contextInfo &&
+                    mp3msg.message.extendedTextMessage.contextInfo.stanzaId === songmsg.key.id
+                ) {
+                
+                            
+                   await conn.sendMessage(from, { react: { text: "⬇️", key: mp3msg.key } });
+
+                    switch (selectedOption) {
+case "1":   
+
+      
+      
+   await conn.sendMessage(from, { document: { url: data.result.downloadUrl }, mimetype: "audio/mpeg", fileName: `${yts.title}.mp3`, contextInfo }, { quoted: mp3msg });   
+      
+      
+break;
+case "2":   
+await conn.sendMessage(from, { audio: { url: data.result.downloadUrl }, mimetype: "audio/mpeg", contextInfo }, { quoted: mp3msg });
+break;
+case "3":   
+await conn.sendMessage(from, { audio: { url: data.result.downloadUrl }, mimetype: "audio/mpeg", ptt: true, contextInfo }, { quoted: mp3msg });
+break;
+
+
+default:
+                            await conn.sendMessage(
+                                from,
+                                {
+                                    text: "***වැරදි ඇතුලත් කිරීමකි. කරුණාකර නිවැරදි අංකය ඇතුලත් කරන්න (1 or 2 or 3) 🔴*",
+                                },
+                                { quoted: mp3msg }
+                            );
+             }}});
+           
     } catch (e) {
         console.log(e);
         reply("An error occurred. Please try again later.");
